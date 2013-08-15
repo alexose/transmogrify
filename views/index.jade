@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  h1 Transmogrify
+  p Transmogrify is a small, fast image converter.
+  h2 Try it!
+  p Upload an SVG image here.
+  form(action="/svg/png", method="post", enctype="multipart/form-data")
+    input(type="file", name="displayImage")
+    br
+    input(name="width" value="600")
+    label x
+    input(name="height" value="400")
+    br
+    input(type="submit")
