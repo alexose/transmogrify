@@ -5,8 +5,9 @@
 
 var express = require('express')
   , routes = require('./routes')
+  , svg = require('./routes/svg')
   , http = require('http')
-  , path = require('path'),
+  , path = require('path')
   , store = express.session.MemoryStore;
 
 
@@ -29,6 +30,7 @@ app.configure('development', function(){
 });
 
 app.get('/', routes.index);
+app.post('/svg/png', svg.png);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));
