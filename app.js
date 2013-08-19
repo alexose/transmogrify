@@ -30,8 +30,8 @@ app.configure('development', function(){
 });
 
 app.get('/', routes.index);
-app.get('/svg/png', svg.png);
 app.post('/svg/png', svg.png);
+app.post('/svg/page', svg.page);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));

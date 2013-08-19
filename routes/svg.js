@@ -3,7 +3,53 @@
 * GET users listing.
 */
 var fs = require('fs'),
-svg2png = require('svg2png');
+    svg2png = require('svg2png'),
+    Spooky = require('spooky');
+
+// Load an external page with spooky, save all the svgs as pngs, and serve out the images
+exports.page = function(req, res){
+    var args = req.body,
+        url = args.url,
+        spooky = new Spooky({}, capture);
+
+    function capture(err){
+        if (err) {
+            e = new Error('Failed to initialize SpookyJS');
+            e.details = err;
+            throw e;
+        }
+
+        spooky.on('error', function (e) {
+            console.error(e);
+        });
+
+        spooky.on('console', function (line) {
+            console.log(line);
+        });
+
+        spooky.start(url);
+
+        spooky.then(function () {
+
+            // Determine number of svgs 
+            var visible = this.evaluate(function() {
+                var elements = __utils__.findAll('svg');
+                return elements.length;
+            });
+
+            this.viewport(1024, 768);
+
+            // Capture every svg
+            for (var i=1; i <= visible; i++){
+                this.captureSelector('svg-' + i + '.png', 'svg:nth-of-type(' + i + ')');
+            }
+            this.exit();
+        });
+
+        spooky.run();
+    }
+}
+
 
 exports.png = function(req, res){
     var args = req.body

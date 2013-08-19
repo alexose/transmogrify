@@ -13,3 +13,7 @@ block content
     input(name="height", value="400")
     br
     input(type="submit")
+  p Or get all the SVGs from a given URL:
+  form(action="/svg/page", method="post")
+    input(name="url", value="http://www.jasondavies.com/animated-bezier/")
+    input(type="submit")
