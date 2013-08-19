@@ -4,14 +4,16 @@
 */
 var fs = require('fs'),
     svg2png = require('svg2png'),
-    Spooky = require('spooky');
+    dir = '/tmp/',
+    Spooky = require('spooky'),
+    strip = function(url){
+        return url.replace('http://', '').replace('https://', '');
+    };
 
 function getAll(url, cb){
-    var spooky = new Spooky({}, capture);
-
     function capture(err){
         if (err) {
-            e = new Error('Failed to initialize SpookyJS');
+            var e = new Error('Failed to initialize SpookyJS');
             e.details = err;
             throw e;
         }
@@ -26,9 +28,21 @@ function getAll(url, cb){
 
         spooky.start(url);
 
-        spooky.then([{ url : url, cb : cb }, function () {
+        spooky.on('screenshots.done', function(){
+            if (typeof(cb) === 'function'){
+                cb();
+            } else {
+                console.log(cb);
+            }
+        });
 
-            url = url.replace('http://', '').replace('https://', '');
+        // I'm looking forward to using the new ECMAScript 6 syntax!
+        var obj = {
+            url : strip(url),
+            dir : dir
+        };
+
+        spooky.then([obj, function () {
 
             // Determine number of svgs 
             var visible = this.evaluate(function() {
@@ -40,34 +54,36 @@ function getAll(url, cb){
 
             // Capture every svg
             for (var i=1; i <= visible; i++){
-                var path = '/tmp/' + url + '/svg-' + i + '.png',
+                var path = dir + url + '/svg-' + i + '.png',
                     selector = 'svg:nth-of-type(' + i + ')';
 
                 this.captureSelector(path, selector);
             }
-            if (typeof(cb) === 'function'){
-                this.run(cb);
-            }
+            
+            this.emit('screenshots.done');
+
             this.exit();
         }]);
         spooky.run();
 
         return;
     }
+    
+    var spooky = new Spooky({}, capture);
+
 }
 
-function getOne(res, url, num){
-    var stripped = url.replace('http://', '').replace('https://', ''),
-        path = '/tmp/' + stripped + 'svg-' + num + '.png';
-
-    console.log(path);
+function getOne(res, url, num, fail){
+    var path = dir + strip(url) + 'svg-' + num + '.png';
 
     fs.readFile(path, function(err, data){
         if (err){
-            console.log(url, num);
+
             // Could not read data.  Let's get the svgs from the page and try again.
             getAll(url, function(){
-                getOne(url, num);
+                if (!fail){
+                    getOne(res, url, num, true);
+                }
             });
         } else {
             res.writeHead(200, {'Content-Type': 'image/png' });
