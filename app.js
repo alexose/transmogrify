@@ -30,6 +30,7 @@ app.configure('development', function(){
 });
 
 app.get('/', routes.index);
+app.get('/svg/png', svg.png);
 app.post('/svg/png', svg.png);
 
 http.createServer(app).listen(app.get('port'), function(){
