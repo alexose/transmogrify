@@ -6,11 +6,8 @@ var fs = require('fs'),
     svg2png = require('svg2png'),
     Spooky = require('spooky');
 
-// Load an external page with spooky, save all the svgs as pngs, and serve out the images
-exports.page = function(req, res){
-    var args = req.body,
-        url = args.url,
-        spooky = new Spooky({}, capture);
+function getAll(url, cb){
+    var spooky = new Spooky({}, capture);
 
     function capture(err){
         if (err) {
@@ -29,7 +26,9 @@ exports.page = function(req, res){
 
         spooky.start(url);
 
-        spooky.then(function () {
+        spooky.then([{ url : url, cb : cb }, function () {
+
+            url = url.replace('http://', '').replace('https://', '');
 
             // Determine number of svgs 
             var visible = this.evaluate(function() {
@@ -41,15 +40,57 @@ exports.page = function(req, res){
 
             // Capture every svg
             for (var i=1; i <= visible; i++){
-                this.captureSelector('svg-' + i + '.png', 'svg:nth-of-type(' + i + ')');
+                var path = '/tmp/' + url + '/svg-' + i + '.png',
+                    selector = 'svg:nth-of-type(' + i + ')';
+
+                this.captureSelector(path, selector);
+            }
+            if (typeof(cb) === 'function'){
+                this.run(cb);
             }
             this.exit();
-        });
-
+        }]);
         spooky.run();
+
+        return;
     }
 }
 
+function getOne(res, url, num){
+    var stripped = url.replace('http://', '').replace('https://', ''),
+        path = '/tmp/' + stripped + 'svg-' + num + '.png';
+
+    console.log(path);
+
+    fs.readFile(path, function(err, data){
+        if (err){
+            console.log(url, num);
+            // Could not read data.  Let's get the svgs from the page and try again.
+            getAll(url, function(){
+                getOne(url, num);
+            });
+        } else {
+            res.writeHead(200, {'Content-Type': 'image/png' });
+            res.end(data);
+        }
+    });
+}
+
+// Get all SVGs on a page and put them in the memory store
+exports.getAll = function(req, res){
+    var args = req.body,
+        url = args.url;
+
+    getAll(url);
+};
+
+exports.getOne = function(req, res){
+    var args = req.params,
+        url = args.url,
+        num = args.num;
+
+    getOne(res, url, num);
+};
 
 exports.png = function(req, res){
     var args = req.body
